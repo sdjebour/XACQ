@@ -114,6 +114,10 @@ The help is available through
 ```shell
 python3 ./scripts/bench.py -h
 ```
+To launch the experiments, make sure to activate the Python environment first:
+```
+source venv/bin/activate
+```
 
 Moreover, after running your experiments, you can always recompute the statistics as follows:
 ```shell
