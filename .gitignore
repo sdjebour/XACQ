@@ -1,0 +1,16 @@
+/target/
+/preca/
+.settings/
+*.class
+bin
+.classpath
+.project
+**/*.pyc
+**/__pycache__
+binsecplugin/concrete/binsec
+binsecplugin/concrete/_build
+binsecplugin/pathpredicate/_build/
+binsecplugin/pathpredicate_server/_build/
+binsecplugin/buffersize/_build/
+_opam
+Dockerfile

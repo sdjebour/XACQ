@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 2
+types: STR, STR
+globals: false, false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/strcpy
+binsec: datasets/binsec_ini/ijcai22/nopost/strcpy.ini
+
+# Expected result
+precond: (and (valid v0) (valid v1) (or (not (ptrgt v0 v1)) (not (overlap v0 v1))))
+
+# Language
+bias: Valid_X, PtrGT_X_Y, Overlap_X_Y
+
+# Conacq options
+

@@ -1,0 +1,19 @@
+# Variables Setup
+nargs: 19
+types: PTR_224, UINT8, UINT8, UINT8, UINT16, PTR_8, PTR_8, UINT16, UINT16, BOOL, UINT16, UINT16, BOOL, BOOL, BOOL, PTR_96, UINT16, PTR_8, UINT16
+globals: false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false
+
+arch: arm32
+
+# Emulator Options
+bin: datasets/binaries/tinyusb/tusb.elf
+binsec: datasets/binsec_ini/tinyusb/tu_edpt_stream_init.ini
+
+# Expected result
+precond: (valid v0)
+
+# Language
+bias: Valid_X
+
+# Conacq options
+

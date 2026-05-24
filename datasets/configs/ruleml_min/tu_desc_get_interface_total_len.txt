@@ -1,0 +1,20 @@
+# Variables Setup
+nargs: 12
+types: PTR_72, UINT8, UINT8, UINT8, UINT8, UINT8, UINT8, UINT8, UINT8, UINT8, UINT8, UINT16
+globals: false, false, false, false, false, false, false, false, false, false, false, false
+
+arch: arm32
+
+# Emulator Options
+bin: datasets/binaries/tinyusb/tusb.elf
+binsec: datasets/binsec_ini/tinyusb/tu_desc_get_interface_total_len.ini
+
+# Expected result
+precond: (or (valid v0) (eq v10 #x00))
+
+# Language
+bias: Valid_X, Eq_X_0
+
+# Conacq options
+
+

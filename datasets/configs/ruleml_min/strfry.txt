@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 1
+types: STR
+globals: false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/strfry
+binsec: datasets/binsec_ini/ijcai22/nopost/strfry.ini
+
+# Expected result
+precond: (valid v0)
+
+# Language
+bias: Valid_X
+
+# Conacq options
+

@@ -1,0 +1,21 @@
+(library
+ (public_name libexepath)
+ (name libexepath)
+ (modules env exepath)
+ (flags
+  (:standard -open Binsec -open Smt -open Libsse -open Libterm -open Plugins))
+   (libraries binsec binsec.smt binsec.domains binsec.sse binsec.sse.term)
+)
+
+(plugin
+ (name exepath)
+ (libraries libexepath)
+ (site
+  (binsec plugins)))
+
+
+(plugin
+ (name emul)
+ (libraries libexepath)
+ (site
+  (binsec plugins)))

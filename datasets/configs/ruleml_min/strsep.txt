@@ -1,0 +1,19 @@
+# Variables Setup
+nargs: 3
+types: PTR, STR, STR
+globals: false, false, true
+addr_globals: 0x404038
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/strsep
+binsec: datasets/binsec_ini/ijcai22/nopost/strsep.ini
+
+# Expected result
+precond: (and (deref v0 v2) (or (not (valid v2)) (valid v1)))
+
+# Language
+bias: Valid_X, Deref_X_Y
+
+# Conacq options
+

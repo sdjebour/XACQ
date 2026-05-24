@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 2
+types: STR, UINT
+globals: false, false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/strnlen
+binsec: datasets/binsec_ini/ijcai22/nopost/strnlen.ini
+
+# Expected result
+precond: (or (eq v1 #x00000000) (valid v0))
+
+# Language
+bias: Valid_X, Eq_X_0
+
+# Conacq options
+

@@ -1,0 +1,28 @@
+# Variables Setup
+nargs: 4
+types: PTR, INT, INT, INT
+globals: false, false, false, false
+arch : x86-64
+
+# Emulator Options
+bin: examples/struct
+binsec: examples/struct.ini
+
+# Expected result
+precond: (and (valid v0) (distinct v3 #x00000000))
+
+# Acquisition Options
+active: true
+disj: 1
+strat: false
+back: true
+verbose: true
+json: false
+timeout: 60
+emultimeout: 5
+action_emultimeout: false
+simplify: true
+explain: true
+
+# Language
+bias: Valid_X, Alias_X_Y, Deref_X_Y, Overlap_X_Y, StrlenEq_X_0, Eq_X_-1, LT_X_0, GT_X_0, Eq_X_Y, LT_X_Y, GT_X_Y

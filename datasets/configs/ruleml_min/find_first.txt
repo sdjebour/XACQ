@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 4
+types: PTR, INT, PTR, INT
+globals: false, false, false, false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/find_first
+binsec: datasets/binsec_ini/ijcai22/nopost/find_first.ini
+
+# Expected result
+precond: (and (or (not (sgt v1 #x00000000)) (valid v0)) (or (not (sgt v1 #x00000000)) (not (sgt v3 #x00000000)) (valid v2)))
+
+# Language
+bias: Valid_X, GT_X_0
+
+# Conacq options
+

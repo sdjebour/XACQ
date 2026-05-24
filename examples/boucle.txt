@@ -1,0 +1,23 @@
+# Variables Setup
+nargs: 1
+types: INT
+globals: false
+
+# Emulator Options
+bin: datasets/boucle
+binsec: datasets/boucle.ini
+
+# Acquisition Options
+active: true
+disj: auto
+strat: true
+back: true
+verbose: true
+json: false
+timeout: 60
+emultimeout: 5
+action_emultimeout: false
+simplify: true
+
+# Language
+bias: Eq_X_0, LT_X_0, GT_X_0, Eq_X_Y, LT_X_Y, GT_X_Y

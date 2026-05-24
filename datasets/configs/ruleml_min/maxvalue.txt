@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 2
+types: INT, INT
+globals: false, false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/maxvalue
+binsec: datasets/binsec_ini/ijcai22/nopost/maxvalue.ini
+
+# Expected result
+precond: (not (slt v1 #x00000000))
+
+# Language
+bias: LT_X_0
+
+# Conacq options
+

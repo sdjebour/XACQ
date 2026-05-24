@@ -1,0 +1,19 @@
+# Variables Setup
+nargs: 11
+types: PTR_96, PTR_8, UINT16, UINT16, BOOL, UINT16, UINT16, PTR_8, UINT16, UINT16, BOOL
+globals: false, false, false, false, false, false, false, false, false, false, false
+
+arch: arm32
+
+# Emulator Options
+bin: datasets/binaries/tinyusb/tusb.elf
+binsec: datasets/binsec_ini/tinyusb/tu_fifo_config.ini
+
+# Expected result
+precond: (or (valid v0) (ugt v8 #x8000))
+
+# Language
+bias: Valid_X, GT_X_32768
+
+# Conacq options
+

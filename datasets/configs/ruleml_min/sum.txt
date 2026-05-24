@@ -1,0 +1,18 @@
+# Variables Setup
+nargs: 2
+types: PTR, INT
+globals: false, false
+arch: x86-64
+
+# Emulator Options
+bin: datasets/binaries/sum
+binsec: datasets/binsec_ini/ijcai22/nopost/sum.ini
+
+# Expected result
+precond: (and (not (slt v1 #x00000000)) (or (eq v1 #x00000000) (valid v0)))
+
+# Language
+bias: Valid_X, Eq_X_0, LT_X_0
+
+# Conacq options
+
