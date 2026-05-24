@@ -25,6 +25,7 @@ FILE=""
 DISJ="auto"
 STRAT=false
 EXPLAIN=false
+BIAS_OPTIM=false
 SOLVOPTIM=false
 BACK=false
 TIMEOUT="3600"
@@ -59,6 +60,10 @@ while [[ $# -gt 0 ]]; do
         ;;
 	-explain)
         EXPLAIN=true
+        shift # past argument
+        ;;
+        -bias_optim)
+        BIAS_OPTIM=true
         shift # past argument
         ;;
         -solvoptim)
@@ -116,6 +121,7 @@ ${STR}
 active: $ACTIVE 
 disj: $DISJ
 explain: $EXPLAIN
+bias_optim: $BIAS_OPTIM
 solvoptim: $SOLVOPTIM
 strat: $STRAT
 back: $BACK
@@ -132,7 +138,7 @@ ${STR2}
 conffilename="/tmp/$(basename $FILE).$(date +"%H-%M-%S-%N")"
 echo "$conf" > $conffilename
 
-java -ea -jar ./preca.jar -file $conffilename
+java -ea -jar ./xacq.jar -file $conffilename
 
 res=$?
 

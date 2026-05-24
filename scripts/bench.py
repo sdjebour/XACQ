@@ -281,6 +281,7 @@ def bench(conffiles, timeout, conacq_args, outfile, passive, nruns, biaslevel, i
     disj = conacq_args["disj"]
     strat = conacq_args["strat"]
     explain = conacq_args["explain"]
+    bias_optim = conacq_args["bias_optim"]
     solvoptim = conacq_args["solvoptim"]
     back = conacq_args["back"]
     emulto = conacq_args["emulto"]
@@ -303,6 +304,7 @@ def bench(conffiles, timeout, conacq_args, outfile, passive, nruns, biaslevel, i
             "-emulto", emulto,
             "-strat" if strat else None,
             "-explain" if explain else None,
+            "-bias_optim" if bias_optim else None,
             "-solvoptim" if solvoptim else None,
             "-back" if back else None,
             "-passive" if passive else None,
@@ -376,6 +378,7 @@ if __name__ == "__main__":
     parser.add_argument('--disj', required=False, type=str, help="Add disjunction constraints")
     parser.add_argument('--strat', action="store_true", help="Add query generation strategy")
     parser.add_argument('--explain', action="store_true", help="explaination")
+    parser.add_argument('--bias_optim', action="store_true", help="bias_optim")
     parser.add_argument('--solvoptim', action="store_true", help="solv optim for explaination")
     parser.add_argument('--back', action="store_true", help="Add background knowledge")
     parser.add_argument('--biaslvl', type=str, help="Set bias size (min, avg, max)")
@@ -391,6 +394,7 @@ if __name__ == "__main__":
         "disj" : args.disj if args.disj != None else "auto",
         "strat" : args.strat,
         "explain" : args.explain,
+        "bias_optim" : args.bias_optim,
         "solvoptim" : args.solvoptim,
         "back" : args.back,
         "emulto": args.emulto,
