@@ -5,7 +5,7 @@ XACQ is part of the BINSEC toolbox for binary-level program analysis and is buil
 
 # Table of Contents
 
-1.  [Quick Setup - Docker image](#docker_image)
+1.  [Quick Setup - Docker Image](#docker_image)
 2.  [Requirements](#requirements)
 3.  [Installation](#installation)
 4.  [Usage](#usage)
@@ -16,8 +16,14 @@ XACQ is part of the BINSEC toolbox for binary-level program analysis and is buil
 
 You do not need to clone this GitHub repository or download any source code to use XACQ. As long as you have Docker installed, you can run the tool directly from your terminal. Docker will automatically download the image from the registry the first time you execute it.
 ```shell
-docker run --rm sdjebour/xacq:latest
+sudo docker pull sdjebour/xacq:latest
+sudo docker run --rm -it --user opam sdjebour/xacq:latest
 ```
+When entering the Docker container, you must initialize the OCaml environment by running:
+```
+eval $(opam env)
+```
+All set! You can now proceed to the Usage and Experiments sections below.
 
 # Requirements
 
@@ -66,7 +72,7 @@ cp target/<jarfile> xacq.jar
 
 You can get XACQ's available options:
 ```shell
-java -jar XACQ.jar -help
+java -jar xacq.jar -help
 ```
 
 XACQ takes as input the path to the configuration file as follows:
@@ -114,7 +120,7 @@ Moreover, after running your experiments, you can always recompute the statistic
 python3 ./scripts/recompute_stats.py --file <json-file> --timeout <seconds>
 ```
 
-## Rule_ML+RR
+## Rule ML+RR
 
 To replicate experiments from our submission run the following commands:
 For Level 1 Bases :
