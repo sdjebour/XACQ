@@ -38,7 +38,7 @@ The XACQ framework depends on:
 ```shell
 cd path/to/xacq
 opam switch create . <OCAML_VERSION> # OCAML_VERSION < 5.0.0
-opam pin ./binsecplugin/concrete/   # pin the libconcrete package and install its dependencies (Binsec, Unisim ...)
+opam pin ./binsecplugin/pathpredicate/   # pin the libconcrete package and install its dependencies (Binsec, Unisim ...)
 ```
 
 To install the python dependencies, run:
