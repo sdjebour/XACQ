@@ -24,6 +24,9 @@ package io.github.binsec.core.learner;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * This class is a wrapper to observe a given learner with a
@@ -50,6 +53,20 @@ public class ObservedLearner extends ACQ_Learner {
 	public int[] infexppos(int classi, int kappa, int additional) {
 		int[] ret = learner.infexppos(classi, kappa, additional);
 		pcs.firePropertyChange("INFEXPPOS", null, ret);
+		return ret;
+	}
+	
+	@Override
+	public ArrayList<ArrayList<Integer>> theory_evol(ArrayList<ArrayList<Integer>> res) {
+		ArrayList<ArrayList<Integer>>  ret = learner.theory_evol(res);
+		pcs.firePropertyChange("THOERY_EVOL", null, ret);
+		return ret;
+	}
+	
+	@Override
+	public int[] query_theory_evol(int a, int b, int c) {
+		int[] ret = learner.query_theory_evol(a,b,c);
+		pcs.firePropertyChange("QUERY_THOERY_EVOL", null, ret);
 		return ret;
 	}
 
@@ -114,5 +131,14 @@ public class ObservedLearner extends ACQ_Learner {
 	public void removePropertyChangeListener(PropertyChangeListener l) {
 		pcs.removePropertyChangeListener(l);
 	}
+	
+	@Override
+	public int[] updateExpStat(int a, int b, int c) {
+		int[] ret = learner.updateExpStat(a,b,c);
+		pcs.firePropertyChange("DCA_UPDATE", null, ret);
+		return ret;
+		
+	}
+	
 
 }

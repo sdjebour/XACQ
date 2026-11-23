@@ -28,10 +28,11 @@ import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.Optional;
 
 import org.json.JSONObject;
-
+import io.github.binsec.core.acqsolver.ACQ_BitwuzlaSolver;
 import io.github.binsec.core.acqconstraint.ACQ_Network;
 import io.github.binsec.core.acqconstraint.ContradictionSet;
 import io.github.binsec.core.acqsolver.ACQ_ConstraintSolver;
@@ -39,6 +40,8 @@ import io.github.binsec.core.acqsolver.SATSolver;
 import io.github.binsec.core.acqvariable.ACQ_CellVariable;
 import io.github.binsec.core.acqvariable.CellType;
 import io.github.binsec.core.basics.Bitvec;
+import io.github.binsec.core.combinatorial.SubMSSIterator;
+import io.github.binsec.core.combinatorial.SubMSSIterator.Strategy;
 import io.github.binsec.core.learner.ACQ_Bias;
 import io.github.binsec.core.learner.ACQ_Learner;
 import io.github.binsec.core.learner.ACQ_Query;
@@ -51,6 +54,7 @@ import io.github.binsec.core.tools.Collective_Stats;
 import io.github.binsec.core.tools.StatManager;
 import io.github.binsec.core.tools.TimeManager;
 import io.github.binsec.core.tools.TimeUnit;
+import io.github.binsec.expe.PreCA;
 
 public class ACQ_Utils {
 	public static Collective_Stats stats = new Collective_Stats();
@@ -81,6 +85,14 @@ public class ACQ_Utils {
 				case "NON_ASKED_QUERY":
 					ACQ_Query query_ = (ACQ_Query) evt.getNewValue();
 					statManager.update_non_asked_query(query_);
+					break;
+				case "THOERY_EVOL":
+					List<Integer> res = (List<Integer>) evt.getNewValue();
+					statManager.theory_evol(res);
+					break;
+				case "QUERY_THOERY_EVOL":
+					int[] info2 = (int[]) evt.getNewValue();
+					statManager.query_theory_evol(info2[0],info2[1],info2[2]);
 					break;
 
 				}
@@ -304,6 +316,9 @@ public class ACQ_Utils {
 
 			Double ctfound = chrono.getResult("ct_found", unit);
 			obj.put("ct_found", ctfound != null ? ctfound : JSONObject.NULL);
+			
+			obj.put("theory_evol",statManager.gettheory_evol().toString());
+			obj.put("query_theory_evol",statManager.getquerytheory_evol().toString());
 
 			System.out.println(obj.toString());
 		} else if (answer_timeouted) {
@@ -325,7 +340,9 @@ public class ACQ_Utils {
 			System.out.println("Convergence time : " + df.format(totalTime) + unit);
 			System.out.println("Oracle Time : " + df.format(meanoracle) + unit);
 			System.out.println("ct found in : " + df.format(ctfound) + unit);
-
+			System.out.println("theory evolution (time) : " + statManager.gettheory_evol().toString());
+			System.out.println("theory evolution (query): " + statManager.getquerytheory_evol().toString());
+			
 			System.out.println("\n*************Learned Network CL example ******");
 			System.out.println(learned != null ? learned.toString() : null);
 
@@ -562,8 +579,8 @@ public class ACQ_Utils {
 		return stats;
 	}
 
-	public static Collective_Stats executeEConacqExperience(DefaultExperience expe, boolean active, int nbrQueries,
-			ArchType arch, boolean solvoptim, boolean bias_optim) {
+	public static Collective_Stats executeXACQExperience(DefaultExperience expe, boolean active, int nbrQueries,
+			ArchType arch, boolean solvoptim, boolean bias_optim, boolean pos_explain, boolean neg_explain) {
 		ACQ_Bias bias = expe.createBias();
 		ACQ_Bias known = expe.getKnownConstraints();
 
@@ -590,10 +607,9 @@ public class ACQ_Utils {
 					break;
 				case "INFEXPPOS":
 					int[] info = (int[]) evt.getNewValue();
-					// info[0] = kappa of the query
-					// info[1] = kappa of the explanation
-					// info[2] = number of line of the binsec output
-					// info[3] = number of asserts in the binsec output
+					// info[0] = classification
+					// info[1] = kappa of the query
+					// info[2] = kappa of the explanation
 					statManager.update_infexppos(info[2], info[1]);
 					statManager.update_kappaHistory(info[0], info[1], info[2]);
 					// System.out.println("EVENT: " + evt.getPropertyName()
@@ -602,14 +618,11 @@ public class ACQ_Utils {
 
 				case "INFEXPNEG":
 					int[] info1 = (int[]) evt.getNewValue();
-					// info1[0] = kappa of the query
-					// info1[1] = number of constraints fixed
-					// info1[2] = number of line of the binsec output
-					// info1[3] = number of asserts in the binsec output
+					// info[0] = classification
+					// info[1] = kappa of the query
+					// info[2] = number of constraints fixed
 					statManager.update_infexpneg(info1[2] > 0);
 					statManager.update_kappaHistory(info1[0], info1[1], info1[2]);
-					// System.out.println("EVENT: " + evt.getPropertyName()
-					// + " " + Arrays.toString((int[]) evt.getNewValue()));
 					break;
 
 				case "UPDATESOLV":
@@ -618,8 +631,18 @@ public class ACQ_Utils {
 					// System.out.println("EVENT: " + evt.getPropertyName()
 					// + " " + Arrays.toString((int[]) evt.getNewValue()));
 					break;
+				case "THOERY_EVOL":
+					List<Integer> res = (List<Integer>) evt.getNewValue();
+					statManager.theory_evol(res);
+					break;
+				case "QUERY_THOERY_EVOL":
+					int[] info2 = (int[]) evt.getNewValue();
+					statManager.query_theory_evol(info2[0],info2[1],info2[2]);
+					break;
 
+				
 				}
+				
 			}
 		};
 		observedLearner.addPropertyChangeListener(queryListener);
@@ -682,12 +705,12 @@ public class ACQ_Utils {
 		 * Instantiate Acquisition algorithm
 		 */
 
-		ACQ_ECONACQ acquisition;
+		ACQ_XACQ acquisition;
 
 		if (known != null) {
-			acquisition = new ACQ_ECONACQ(observedLearner, bias, known, satSolver, solver, arch, nbrQueries, solvoptim, bias_optim);
+			acquisition = new ACQ_XACQ(observedLearner, bias, known, satSolver, solver, arch, nbrQueries, solvoptim, bias_optim, pos_explain, neg_explain);
 		} else {
-			acquisition = new ACQ_ECONACQ(observedLearner, bias, satSolver, solver);
+			acquisition = new ACQ_XACQ(observedLearner, bias, satSolver, solver);
 		}
 
 		acquisition.setQueryPrinter(expe.getQueryPrinter());
@@ -788,7 +811,8 @@ public class ACQ_Utils {
 			obj.put("solvtime_history", statManager.getsolvtimeHistory().toString());
 			obj.put("learned_size",
 					acquisition.getLearnedNetwork() != null ? acquisition.getLearnedNetwork().size() : JSONObject.NULL);
-
+			obj.put("theory_evol",statManager.gettheory_evol().toString());
+			obj.put("query_theory_evol",statManager.getquerytheory_evol().toString());
 //			obj.put("domain_info", vardom.toString());
 
 			Double sq = chrono.getResult("solveQ", unit);
@@ -882,6 +906,9 @@ public class ACQ_Utils {
 			System.out.println("ct found in : " + df.format(ctfound) + unit);
 //			System.out.println("vardom : " + vardom.toString());
 			System.out.println("solv : " + statManager.getsolvtimeHistory().toString());
+			System.out.println("theory evolution (time) : " + statManager.gettheory_evol().toString());
+			System.out.println("theory evolution (query): " + statManager.getquerytheory_evol().toString());
+
 			if (acquisition.getLearnedNetwork() != null) {
 				System.out.println("learned_size : " + acquisition.getLearnedNetwork().size());
 
@@ -953,6 +980,299 @@ public class ACQ_Utils {
 		for (int numvar : b)
 			bs.set(numvar);
 		return bitSet2Int(bs);
+	}
+
+	public static Collective_Stats executeXDCAExperience(DefaultExperience expe, ArchType archtype, 
+			SubMSSIterator.Strategy strategy, boolean neg_activated, boolean pos_activated) {
+		/*
+		 * prepare bias
+		 */
+		ACQ_Bias bias = expe.createBias();
+
+		/*
+		 * prepare learner
+		 */
+		ACQ_Learner learner = expe.createLearner();
+		ObservedLearner observedLearner = new ObservedLearner(learner);
+
+		// observe learner for query stats
+		final StatManager statManager = new StatManager(bias.getVars().size());
+		statManager.setMsg("Queries");
+		PropertyChangeListener queryListener = new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				switch (evt.getPropertyName()) {
+				case "ASK":
+					ACQ_Query query = (ACQ_Query) evt.getNewValue();
+					statManager.update(query);
+					break;
+				case "NON_ASKED_QUERY":
+					ACQ_Query query_ = (ACQ_Query) evt.getNewValue();
+					statManager.update_non_asked_query(query_);
+					break;
+					
+				case "DCA_UPDATE":
+					int[] info = (int[]) evt.getNewValue();
+					if(info[0]==0)	statManager.update_infexpneg(info[1]>info[2]);
+					else			statManager.update_infexppos(info[1],info[2]);
+					statManager.update_kappaHistory2(info[0], info[1],info[2]);
+
+					// System.out.println("EVENT: " + evt.getPropertyName()
+					// + " " + Arrays.toString((int[]) evt.getNewValue()));
+					break;
+				
+					
+				case "UPDATESOLV":
+					double[] info3 = (double[]) evt.getNewValue();
+					statManager.solvtimeHistory(info3[0], info3[1]);
+					break;
+					
+				}
+				
+			}
+		};
+		observedLearner.addPropertyChangeListener(queryListener);
+		/*
+		 * prepare solver
+		 *
+		 */
+
+		// ACQ_Heuristic heuristic = expe.getHeuristic();
+		final ACQ_ConstraintSolver solver = expe.createSolver();
+		solver.setVars(bias.getVars());
+		solver.setLimit(expe.getTimeout());
+
+		TimeUnit unit = TimeUnit.S;
+
+		// observe solver for time measurement
+		final TimeManager timeManager = new TimeManager("CP");
+		timeManager.setUnit(unit);
+		Chrono chrono = new Chrono(expe.getClass().getName(), true);
+		solver.addPropertyChangeListener(new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				if (evt.getPropertyName().startsWith("TIMECOUNT")) {
+					timeManager.add(secondToUnit((Float) evt.getNewValue(), unit));
+				} else if (evt.getPropertyName().startsWith("BEG")) {
+					chrono.start(evt.getPropertyName().substring(4));
+				} else if (evt.getPropertyName().startsWith("END")) {
+					chrono.stop(evt.getPropertyName().substring(4));
+				}
+			}
+		});
+
+		final SATSolver satSolver = expe.createSATSolver();
+		satSolver.setLimit(expe.getTimeout());
+
+		// observe sat solver time measurement
+		final TimeManager satTimeManager = new TimeManager("SAT");
+		satTimeManager.setUnit(unit);
+		satSolver.addPropertyChangeListener(new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				if (evt.getPropertyName().startsWith("BEG")) {
+					chrono.start(evt.getPropertyName().substring(4));
+				} else if (evt.getPropertyName().startsWith("END")) {
+					chrono.stop(evt.getPropertyName().substring(4));
+
+					if (evt.getPropertyName().startsWith("END_TIMECOUNT")) {
+						satTimeManager.add(chrono.getLast(evt.getPropertyName().substring(4), unit));
+					}
+				}
+			}
+		});
+
+		/*
+		 * Instantiate Strategies
+		 */
+		ArrayList<ACQ_Network> strat = expe.createStrategy(bias);
+
+		/*
+		 * Instantiate Acquisition algorithm
+		 */
+
+		ACQ_XDCA acquisition;
+
+		acquisition = new ACQ_XDCA(bias, expe.getKnownConstraints(), observedLearner, satSolver, (ACQ_BitwuzlaSolver) solver, archtype, neg_activated, pos_activated, expe.getCells());
+
+		if (expe.isVerbose())
+			System.out.println(String.format("Bias size : %d", bias.getSize()));
+
+		acquisition.setQueryPrinter(expe.getQueryPrinter());
+		acquisition.setGrow2(expe.getGrow2());
+
+		/*
+		 * Instantiate Background knowledge
+		 */
+		ContradictionSet backknow = expe.createBackgroundKnowledge(bias, acquisition.mapping);
+		int origbksize = backknow != null ? backknow.getSize() : 0;
+		if (expe.isVerbose() && backknow != null)
+			System.out.println(String.format("BN size : %d", origbksize));
+		acquisition.setBackgroundKnowledge(backknow);
+
+		// Param
+		acquisition.setVerbose(expe.isVerbose());
+		// acquisition.setLog_queries(expe.isLog_queries());
+		acquisition.setStrat(strat);
+		// acquisition.setCellVariables(expe.getCells());
+
+		Long learningTimeout = expe.getLearningTimeout();
+		acquisition.setLearningTimeout(learningTimeout);
+		/*
+		 * Run
+		 */
+		chrono.start("total");
+		boolean answer_timeouted = false;
+		try {
+			acquisition.process(chrono);
+				
+		} catch (AnswerTimeoutException e) {
+			answer_timeouted = true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		chrono.stop("total");
+
+		/*
+		 * Print results
+		 */
+
+		ACQ_Network learned = acquisition.getLearnedDNF();
+
+		ACQ_Network notsimpl = learned;
+		chrono.start("simplify");
+		if (learned != null)
+			learned = expe.simplify(learned, acquisition.muses);
+		chrono.stop("simplify");
+
+		if (expe.getJson()) {
+			JSONObject obj = new JSONObject();
+
+			obj.put("answer_timeouted", answer_timeouted);
+			
+			ArrayList<String> NegMSSes = acquisition.getLearnedNegMSSes();
+			obj.put("Neg_MSSes", NegMSSes != null ? NegMSSes : JSONObject.NULL);
+			
+			ArrayList<String> PosMSSes = acquisition.getLearnedPosMSSes();
+			obj.put("Pos_MSSes", PosMSSes != null ? PosMSSes : JSONObject.NULL);
+			
+			ArrayList<String> NegMCS = acquisition.getLearnedNegMCS();
+			obj.put("Neg_MCS", NegMCS != null ? NegMCS : JSONObject.NULL);
+			
+			ArrayList<String> PosMCS = acquisition.getLearnedPosMCS();
+			obj.put("Pos_MCS", PosMCS != null ? PosMCS : JSONObject.NULL);
+
+			obj.put("time_unit", unit.toString());
+			obj.put("nb_queries", statManager.getNbCompleteQuery());
+			obj.put("nb_pos_queries", statManager.getNbPositiveQuery());
+			obj.put("nb_neg_queries", statManager.getNbNegativeQuery());
+			obj.put("nb_inf_exppos", statManager.getNbInfExppos());
+			obj.put("nb_inf_expneg", statManager.getNbInfExpneg());
+			obj.put("solvtime_history", statManager.getsolvtimeHistory().toString());
+			obj.put("kappa_history", statManager.getKappaHistory().toString());
+
+
+			Double sq = chrono.getResult("solveQ", unit);
+			Double sn = chrono.getResult("solve_network", unit);
+			obj.put("constrSolvTime", sq != null && sn != null ? sq + sn : JSONObject.NULL);
+
+			Integer sqni = chrono.nbInstances("solveQ");
+			Integer snni = chrono.nbInstances("solve_network");
+			obj.put("constrSolvNbCall", sqni != null && snni != null ? sqni + snni : JSONObject.NULL);
+
+			Double ssolve = chrono.getResult("satsolve", unit);
+			obj.put("satSolvTime", ssolve != null ? ssolve : JSONObject.NULL);
+
+			Integer ssolveni = chrono.nbInstances("satsolve");
+			obj.put("satSolvNbCall", ssolveni != null ? ssolveni : JSONObject.NULL);
+
+			Double tot = chrono.getResult("total", unit);
+			obj.put("convTime", tot != null ? tot : JSONObject.NULL);
+			
+			Double l_no = chrono.getResult("last_no", unit);
+			obj.put("last_update", l_no != null ? l_no : JSONObject.NULL);
+
+			Double gq = chrono.getResult("gen_query", unit);
+			obj.put("query_gen_total", gq != null ? gq : JSONObject.NULL);
+
+			Double gqmin = chrono.getMin("gen_query", unit);
+			obj.put("query_gen_min", gqmin != null ? gqmin : JSONObject.NULL);
+
+			Double gqmax = chrono.getMax("gen_query", unit);
+			obj.put("query_gen_max", gqmax != null ? gqmax : JSONObject.NULL);
+
+			Double gqmean = chrono.getMean("gen_query", unit);
+			obj.put("query_gen_mean", gqmean != null ? gqmean : JSONObject.NULL);
+
+			obj.put("network", learned != null ? learned.toString() : JSONObject.NULL);
+			obj.put("smtlib", learned != null ? learned.toSmtlib() : JSONObject.NULL);
+
+			obj.put("network_not_simpl", notsimpl != null ? notsimpl.toString() : JSONObject.NULL);
+			obj.put("smtlib_not_simpl", notsimpl != null ? notsimpl.toSmtlib() : JSONObject.NULL);
+
+			obj.put("timeout", learningTimeout / 1000.0); // learning TO is in miliseconds
+			obj.put("timeouted", acquisition.timeouted ? "yes" : "no");
+
+			obj.put("biassize", bias.getSize());
+			obj.put("bksize", origbksize);
+
+			Double simplTime = chrono.getResult("simplify", unit);
+			obj.put("simplTime", learned != null ? simplTime : JSONObject.NULL);
+			
+
+			Double expsolvepos = chrono.getResult("explanation_solver_time_pos", unit);
+			obj.put("expSolvTimepos", expsolvepos != null ? expsolvepos : JSONObject.NULL);
+
+			Double expsolveneg = chrono.getResult("explanation_solver_time_neg", unit);
+			obj.put("expSolvTimeneg", expsolveneg != null ? expsolveneg : JSONObject.NULL);
+			
+			
+			Double randTime = chrono.getResult("randquerygen", unit);
+			obj.put("randTime", learned != null ? randTime : JSONObject.NULL);
+			
+			
+			
+
+			System.out.println(obj.toString());
+		} else if (answer_timeouted) {
+			System.out.println("\nAsk timeouted");
+		} else {
+			System.out.println((expe.isVerbose() ? "\n" : "") + statManager + "\n\n" + timeManager.getResults() + "\n\n"
+					+ satTimeManager.getResults());
+
+			DecimalFormat df = new DecimalFormat("0.00E0");
+			double totalTime = (double) chrono.getResult("total", unit);
+			double lastNoTime = (double) Optional.ofNullable(chrono.getResult("last_no", unit)).orElse(0.0);
+
+
+			double simplTime = (double) chrono.getResult("simplify", unit);
+			double mean_query_time = (double) chrono.getMean("gen_query", unit);
+			double expTimepos = (double) Optional.ofNullable(chrono.getResult("explanation_solver_time_pos", unit)).orElse(0.0);
+			double expTimeneg = (double) Optional.ofNullable(chrono.getResult("explanation_solver_time_neg", unit)).orElse(0.0);
+			double randTime = (double) Optional.ofNullable( chrono.getResult("randquerygen", unit)).orElse(0.0);
+					
+			
+			System.out.println("\n------ Execution times ------");
+			System.out.println("Mean query generation time: " + df.format(mean_query_time) + unit);
+			System.out.println("Simplification time : " + df.format(simplTime) + unit);
+			System.out.println("Convergence time : " + df.format(totalTime) + unit);
+			System.out.println("Last update : " + df.format(lastNoTime) + unit);
+			System.out.println("Solver for exp pos : " + df.format(expTimepos) + unit);
+			System.out.println("Solver for exp neg: " + df.format(expTimeneg) + unit);
+			System.out.println("rand solv time : " + df.format(randTime) + unit);
+
+			System.out.println("solv : " + statManager.getsolvtimeHistory().toString());
+			System.out.println("kappa_history : " + statManager.getKappaHistory().toString());
+
+			System.out.println("\n*************Learned Network CL example ******");
+			System.out.println(learned != null ? learned.toString() : null);
+
+			System.out.println("*************Learned Network CL example (SMTLIB) ******");
+			System.out.println(learned != null ? learned.toSmtlib() : null + "\n");
+
+		}
+		return stats;
 	}
 
 }

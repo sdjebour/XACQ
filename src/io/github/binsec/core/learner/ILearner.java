@@ -22,6 +22,9 @@
 
 package io.github.binsec.core.learner;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public interface ILearner {
 	/**
 	 * Ask this learner if the tuple represented by the query e is a solution or not
@@ -48,5 +51,11 @@ public interface ILearner {
 	double[] solvtimehistory(double isPos, double solvtime);
 
 	String updateQueryHistory(String q);
+
+	public ArrayList<ArrayList<Integer>> theory_evol(ArrayList<ArrayList<Integer>> metrics);
+	
+	int[] query_theory_evol(int a, int b, int c);
+
+	int[] updateExpStat(int value, int size, int i);
 
 }

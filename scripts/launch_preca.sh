@@ -25,7 +25,10 @@ FILE=""
 DISJ="auto"
 STRAT=false
 EXPLAIN=false
+POS_EXPLAIN=true
+NEG_EXPLAIN=true
 BIAS_OPTIM=false
+ALGO="conacq"
 SOLVOPTIM=false
 BACK=false
 TIMEOUT="3600"
@@ -58,13 +61,26 @@ while [[ $# -gt 0 ]]; do
         STRAT=true
         shift # past argument
         ;;
-	-explain)
+        -explain)
         EXPLAIN=true
+        shift # past argument
+        ;;
+        -pos_explain)
+        POS_EXPLAIN=true
+        shift # past argument
+        ;;
+        -neg_explain)
+        NEG_EXPLAIN=true
         shift # past argument
         ;;
         -bias_optim)
         BIAS_OPTIM=true
         shift # past argument
+        ;;
+        -algo)
+        ALGO="$2"
+        shift # past argument
+        shift # past value
         ;;
         -solvoptim)
         SOLVOPTIM=true
@@ -118,9 +134,12 @@ fi
 conf="""\
 ${STR}
 
-active: $ACTIVE 
+active: $ACTIVE
+algo: $ALGO
 disj: $DISJ
 explain: $EXPLAIN
+pos_explain: $POS_EXPLAIN
+neg_explain: $NEG_EXPLAIN
 bias_optim: $BIAS_OPTIM
 solvoptim: $SOLVOPTIM
 strat: $STRAT

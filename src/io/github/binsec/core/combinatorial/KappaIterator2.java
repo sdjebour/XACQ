@@ -85,47 +85,10 @@ public class KappaIterator2 implements Iterator<ACQ_IConstraint> {
 		while (checked < bias.getSize()) {
 			// System.out.println(checked+"/"+bias.getSize());
 			ACQ_IConstraint current = bias.get_Constraint(checked);
-			// System.out.println(current.toString());
-
-			/*if (current.isDisjunctive()) {
-				boolean skip = false;
-				// pour chaque contrainte dans unsat_list (include disj)
-				if (solvoptim) {
-
-					for (ACQ_IConstraint c : unsat_list) {
-
-						boolean skip_entry = false;
-						// pour chaque contrainte dans constraint to check
-						// System.out.println(bias.get_Constraint(checked).toString());
-						for (ACQ_IConstraint c_ : c.toConstraintSet(cf)) {
-							// si il y a une contrainte dans c (de unsat_list) qui n'est pas dans checked =>
-							// go to next entry in unsat_list
-							if (!current.toConstraintSet(cf).contains(c_)) {
-								skip_entry = true;
-								break;
-							}
-
-							// if we don't break that means we can skip the checked constr
-						}
-						if (skip_entry)
-							continue;
-						skip = true;
-						break;
-						// go next entry in unsat_list
-
-					}
-					if (skip) {
-						// System.out.println("skipped!");
-						//checked++;
-						continue;
-					}
-				}
-			}*/
 			if (!constInKappaPosExp(current)) {
 				unsat_list.add(current);
 				checked++;
 			} else {
-				// System.out.println("exp kappa :" + current.toString());
 				next = current;
 				checked++;
 				break;
@@ -139,10 +102,7 @@ public class KappaIterator2 implements Iterator<ACQ_IConstraint> {
 	}
 
 	private boolean constInKappaPosExp(ACQ_IConstraint c) {
-		// if (constrSolver.solve_pos(c.getNegation(), bk, q, archtype)) {
 		return constrSolver.solve_check_constraint(q, bk, exp, vars, archtype, c.getNegation(), chrono).isSat();
-		// }
-		// return true;
 	}
 
 }

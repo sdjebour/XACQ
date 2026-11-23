@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.variables.IntVar;
@@ -78,11 +79,11 @@ public class ACQ_CellVariable {
 		
 		Integer max_ptr_sizes = getMax(ptr_sizes);
 		
-		int str_max = numberptrcells*2;
+		int str_max = numberptrcells*2+100;
 		
 		int ptr_coef = max_ptr_sizes != null ? max_ptr_sizes : 1;
 		int ptr_offset = Integer.max(1000, str_max + getSizeUpper() + 1);
-		int ptr_max = numberptrcells*2;
+		int ptr_max = numberptrcells*2+100;
 		
 		for (CellType t : CellType.values()) {
 			switch (t) {
@@ -356,5 +357,11 @@ public class ACQ_CellVariable {
 			res[i] = cellList[i].cellid;
 		}
 		return res;
+	}
+	
+	public String getValueBwDomainBinsec(Map<String, String> regid) {
+		Domain dom = values_domains.get(getType());
+		String varname = String.format("x%d!%s", this.cellid,  regid.get("x" + cellid));
+		return dom.getBwDomain(varname);
 	}
 }

@@ -139,9 +139,14 @@ public class Binsec {
 	private String get_dba_cmd(int cell_index, BigInteger value, Bitvec size, Bitvec ref, CellType type) {
 		String dba_cmd = "";
 
-		if (type.isPtrKind()) dba_cmd += String.format("x%d<%d> := nondet_ptr as x%d\n", cells[cell_index].cellid, type.getSize(arch), cells[cell_index].cellid);
-		else dba_cmd += String.format("x%d<%d> := nondet\n", cells[cell_index].cellid, type.getSize(arch));
+		if (type.isPtrKind()) {
+			dba_cmd += String.format("x%d<%d> := nondet_ptr as x%d\n", cells[cell_index].cellid, type.getSize(arch), cells[cell_index].cellid);
+		}
+		else {
+			dba_cmd += String.format("x%d<%d> := nondet\n", cells[cell_index].cellid, type.getSize(arch));
+		}
 		dba_cmd += String.format("assume x%d= %s\n", cells[cell_index].cellid, value);
+
 
 		if (type == CellType.STR) {
 			for (int offset = 0; size.ucompareTo(new Bitvec(BigInteger.valueOf(offset), size.size)) == 1; offset++) {
@@ -289,7 +294,7 @@ public class Binsec {
 		String binsec_init_prefix = getInitPrefix();
 		String input_template = getInputTemplate();
 		String config = binsec_init_prefix + "\n\n" + setinputs(input_template, inputs);
-//		System.out.println(config);
+		//System.out.println(config);
 
 		FileWriter myWriter;
 		File temp = null;
@@ -303,7 +308,7 @@ public class Binsec {
 			e.printStackTrace();
 		}
 		assert temp != null : "temp file should not be null";
-
+		//System.out.println(temp.toString());
 		// Process proc;
 		int res = 0;
 

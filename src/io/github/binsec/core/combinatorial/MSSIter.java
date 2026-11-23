@@ -50,5 +50,29 @@ public abstract class MSSIter {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	public ACQ_Network queryToMss(ACQ_Query query) {
+		assert false;
+		return null;
+	}
+
+	public void BlockDownFormula2(ACQ_Network mss) {
+		assert false;
+
+	}
+
+	public void unitPropagation(ACQ_Network ss) {
+		assert false;
+
+	}
+
+	public void advance() throws TimeoutException {
+		assert false;
+	}
+
+	public void BlockDownFormula(ACQ_Network ss) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

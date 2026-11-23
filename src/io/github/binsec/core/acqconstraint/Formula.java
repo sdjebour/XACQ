@@ -50,6 +50,7 @@ public class Formula {
 		cnfs.add(toadd);
 	}
 	
+	
 	public void setAtLeastAtMost(Clause cl, int lower, int upper) {
 		atLeastAtMost = cl;
 		atLeastLower = lower;
@@ -105,5 +106,20 @@ public class Formula {
 	
 	public Set<Clause> getMinimizations() {
 		return minimizations;
+	}
+
+	public Formula copy() {
+		Formula res= new Formula();
+		for(CNF cnf:this.getCnfs()) {
+			res.addCnf(cnf);
+		}
+		return res;
+	}
+
+	public boolean contains_subset(Clause cl) {
+		for(CNF cnf : cnfs) {
+			if(cnf.contains_subset(cl)) return true;
+		}
+		return false;
 	}
 }

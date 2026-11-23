@@ -56,8 +56,12 @@ import io.github.binsec.core.tools.ArchType;
 import io.github.binsec.core.tools.Chrono;
 import io.github.binsec.core.tools.QueryPrinter;
 import io.github.binsec.core.tools.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-public class ACQ_ECONACQ {
+public class ACQ_XACQ {
 	protected ACQ_Bias bias;
 	protected ACQ_Bias bias_minus;
 
@@ -92,11 +96,20 @@ public class ACQ_ECONACQ {
 	private int strong_inf_query = 0;
 	private ArrayList<Double> solvtimeperQuery_sum = new ArrayList<>();
 	private ArrayList<ArrayList<Double>> solvtimeperQuery = new ArrayList<>();
-	// private ArrayList<Explanation> listnegexp = new ArrayList<Explanation>();
 	private int strong_inf_query2 = 0;
 	private boolean solvoptim;
+	private boolean pos_explain;
+	private boolean neg_explain;
+	
+	//FOR MONITORING CLAUSAL THEORY
 
-	public ACQ_ECONACQ(ACQ_Learner learner, ACQ_Bias bias, SATSolver sat, ACQ_ConstraintSolver solv) {
+    private final ArrayList<ArrayList<Integer>> metrics = new ArrayList<>();
+    private ScheduledExecutorService scheduler;
+
+    private volatile int myFirstValue = 0;
+    private volatile int mySecondValue = 0;
+
+	public ACQ_XACQ(ACQ_Learner learner, ACQ_Bias bias, SATSolver sat, ACQ_ConstraintSolver solv) {
 		this.bias = bias;
 		this.constraintFactory = bias.network.getFactory();
 		this.learner = learner;
@@ -120,13 +133,15 @@ public class ACQ_ECONACQ {
 		assert mapping.size() >= bias.getSize() : "mapping must contain more elements than bias";
 		filter_conjunctions();
 		this.bias_minus = bias.copy();
+		
 
+		
 	}
 
-	public ACQ_ECONACQ(ACQ_Learner learner, ACQ_Bias bias, ACQ_Bias known, SATSolver sat, ACQ_ConstraintSolver solv,
-			ArchType archtype, int nbrQueries, boolean solvoptim, boolean bias_optim) {
+	public ACQ_XACQ(ACQ_Learner learner, ACQ_Bias bias, ACQ_Bias known, SATSolver sat, ACQ_ConstraintSolver solv,
+			ArchType archtype, int nbrQueries, boolean solvoptim, boolean bias_optim, boolean pos_explain, boolean neg_explain) {
 		this.bias = bias;
-		bias_optim= this.bias_optim;
+		this.bias_optim=bias_optim;
 		this.knownconstraints = known;
 		this.constraintFactory = bias.network.getFactory();
 		this.learner = learner;
@@ -137,6 +152,8 @@ public class ACQ_ECONACQ {
 		this.archtype = archtype;
 		this.nbrQueries = nbrQueries;
 		this.solvoptim = solvoptim;
+		this.pos_explain=pos_explain;
+		this.neg_explain=neg_explain;
 
 		for (ACQ_IConstraint c : bias.getConstraints()) {
 			String newvarname = c.getName() + c.getVariables();
@@ -336,7 +353,7 @@ public class ACQ_ECONACQ {
 				}
 			} else {
 				ACQ_Network network = toNetwork(model);
-				q = constrSolver.solveQ(network);
+				q = constrSolver.solveQ2(network, knownconstraints.getNetwork());
 
 				if (constrSolver.isTimeoutReached()) {
 					assert q.isEmpty() : "Timeout reached but q is not empty";
@@ -482,10 +499,10 @@ public class ACQ_ECONACQ {
 		assert (T.isMonomial());
 		ACQ_Network learned = new ACQ_Network(constraintFactory, bias.getVars(),
 				constraintFactory.createSet(T.getMonomialPositive()));
-		learned.addAll(knownconstraints.getNetwork(), true);
+		//learned.addAll(knownconstraints.getNetwork(), true);
 		long startTime = System.currentTimeMillis();
 		while (System.currentTimeMillis() - startTime < 100) { // Until 0.1 second timeout
-			ACQ_Query q = constrSolver.solveQ(learned);
+			ACQ_Query q = constrSolver.solveQ2(learned, knownconstraints.getNetwork());
 
 			ConstraintSet kappa = bias_minus.getKappa(q);
 			for (Clause clause : T) { // TODO check if we cannot remove the loop
@@ -502,8 +519,7 @@ public class ACQ_ECONACQ {
 		for (ACQ_IConstraint c : bias_minus.getConstraints()) {
 			if (!learned.contains(c)) {
 				learned.add(c.getNegation(), true);
-
-				ACQ_Query q = constrSolver.solveQ(learned);
+				ACQ_Query q = constrSolver.solveQ2(learned, knownconstraints.getNetwork());
 				learned.remove(c.getNegation());
 				if (!q.isEmpty())
 					return q;
@@ -608,7 +624,7 @@ public class ACQ_ECONACQ {
 	}
 
 	private boolean skip_imp(ACQ_IConstraint c, HashSet<ACQ_IConstraint> imp_list) {
-		for (ACQ_IConstraint c_ : c.toConstraintSet(constraintFactory)) {
+		for (ACQ_IConstraint c_ : c.getNegation().toConstraintSet(constraintFactory)) {
 			if (!imp_list.contains(c_))
 				return false;
 		}
@@ -626,9 +642,7 @@ public class ACQ_ECONACQ {
 		int added = 0;
 		ACQ_Network learned = new ACQ_Network(constraintFactory, bias.getVars());
 		ACQ_Network bias_copy=bias_minus.copy().getNetwork();
-		// CHANGE :for (ACQ_IConstraint c : bias_minus.copy().getNetwork()) {
 		for (ACQ_IConstraint c : bias_minus.copy().getNetwork()) {
-			//if (!learned.getLearnedNetwork(T).contains(c)) {
 				assert dsize <= c.toConstraintSet(constraintFactory).size();
 				dsize = c.toConstraintSet(constraintFactory).size();
 				if (solvoptim) {
@@ -668,12 +682,7 @@ public class ACQ_ECONACQ {
 						}
 	
 					}
-				//}
-				//else {
-				//	updateClausalTheory(c);
-				//	added++;
-				//}
-			//}
+				
 		}
 
 		return res;
@@ -688,9 +697,7 @@ public class ACQ_ECONACQ {
 		int added = 0;
 		ACQ_Network learned = new ACQ_Network(constraintFactory, bias.getVars());
 		ACQ_Network bias_copy=bias.copy().getNetwork();
-		// CHANGE :for (ACQ_IConstraint c : bias_minus.copy().getNetwork()) {
 		for (ACQ_IConstraint c : bias.copy().getNetwork()) {
-			//if (!learned.getLearnedNetwork(T).contains(c)) {
 				assert dsize <= c.toConstraintSet(constraintFactory).size();
 				dsize = c.toConstraintSet(constraintFactory).size();
 				if (solvoptim) {
@@ -730,12 +737,7 @@ public class ACQ_ECONACQ {
 						}
 	
 					}
-				//}
-				//else {
-				//	updateClausalTheory(c);
-				//	added++;
-				//}
-			//}
+				
 		}
 
 		return res;
@@ -764,6 +766,10 @@ public class ACQ_ECONACQ {
 	}
 
 	public boolean process() throws Exception {
+		this.myFirstValue = bias_minus.getSize();
+		this.mySecondValue = 0;
+		startMonitoring(500, java.util.concurrent.TimeUnit.MILLISECONDS);
+		
 		chrono.start("ct_found");
 		this.t0 = System.currentTimeMillis();
 		boolean convergence = false;
@@ -780,7 +786,7 @@ public class ACQ_ECONACQ {
 		chrono.start("total_acq_time");
 		chrono.start("first_constr_learned");
 		//collapse = preprocess(T, N);
-
+		try {
 		while (active && !(collapse || convergence)) {
 
 			if (istimeouted_nothrow()) {
@@ -828,14 +834,13 @@ public class ACQ_ECONACQ {
 				ConstraintSet kappa = bias_minus.getKappa(membership_query);
 				ConstraintSet kappa2 = bias.getKappa(membership_query);
 
-				// System.out.println(kappa.toString2());
 
 				int s = kappa.size();
 				if (answer == Answer.YES) {
+					if(pos_explain) {
 					int kappaexp_size = 0;
 					HashSet<ACQ_IConstraint> network = new HashSet<ACQ_IConstraint>();
 					chrono.start("explanation_solver_time_pos_query");
-					if(bias_optim) {
 						
 					KappaIterator iter = new KappaIterator(constrSolver, archtype, vars, bias_minus, exp,
 							membership_query, network, constraintFactory, chrono, solvoptim, knownconstraints.network);
@@ -849,44 +854,22 @@ public class ACQ_ECONACQ {
 						kappaexp_size++;
 
 					}
-					}
-					else {
-						KappaIterator2 iter = new KappaIterator2(constrSolver, archtype, vars, bias, exp,
-								membership_query, network, constraintFactory, chrono, solvoptim, knownconstraints.network);
-						//int i=0;
-						while (iter.hasNext()) {
-							ACQ_IConstraint next = iter.getNext();
-							if(bias_minus.contains(next)) {
-								Unit unit = mapping.get(next).clone();
-								unit.setNeg();
-								T.unitPropagate(unit, chrono);
-								bias_minus.getNetwork().remove(next);
-							}
-							
-							iter.next();
-							kappaexp_size++;
-
-						}
-
-					}
 					chrono.stop("explanation_solver_time_pos_query");
-					if(!bias_optim) {
-						
 					learned.getLearnedNetwork(T);
 					learner.infexppos(answer.getValue(),kappa2.size(), kappaexp_size);
-					}
 					learner.solvtimehistory(1, chrono.getLast("explanation_solver_time_pos_query", TimeUnit.S));
 					chrono.reset("explanation_solver_time_pos_query");
 					
-					if(bias_optim) {
-						assert kappaexp_size >= kappa.size() : "kappa is more informative than exp";
-
+					assert kappaexp_size >= kappa.size() : "kappa is more informative than exp";
 					}
 					else {
-						assert kappaexp_size >= kappa2.size() : "kappa is more informative than exp";
-
+						for (ACQ_IConstraint c : kappa) {
+							Unit unit = mapping.get(c).clone();
+							unit.setNeg();
+							T.unitPropagate(unit, chrono);
+						}
+						bias_minus.reduce(kappa);
 					}
-
 				} else {
 
 					if (kappa.size() == 1) {
@@ -922,8 +905,7 @@ public class ACQ_ECONACQ {
 						learner.infexpneg(answer.getValue(),kappa.size(), 0);
 
 					}
-					if (answer == Answer.NO) {
-						if(bias_optim) {
+					if ((answer == Answer.NO) && (neg_explain)) {
 							int b = 0;
 							ACQ_Network network = new ACQ_Network(constraintFactory, bias.getVars());
 							network.getLearnedNetwork(T);
@@ -935,29 +917,13 @@ public class ACQ_ECONACQ {
 							learner.infexpneg(answer.getValue(),kappa.size(), b);
 							learner.solvtimehistory(0, chrono.getLast("explanation_solver_time_neg_query", TimeUnit.S));
 							chrono.reset("explanation_solver_time_neg_query");
-						}
-						else {
-							int b = 0;
-							// listnegexp.add(exp.getNegation());
-							ACQ_Network network = new ACQ_Network(constraintFactory, bias.getVars());
-							learned.getLearnedNetwork(T);
-							chrono.start("explanation_solver_time_neg_query");{
-								
-							}
-							b=b+generelize_simple_learned2(exp.getNegation(), membership_query);
-
-							chrono.stop("explanation_solver_time_neg_query");
-							learned.getLearnedNetwork(T);
-
-							learner.infexpneg(answer.getValue(),kappa2.size(),b);
-							learner.solvtimehistory(0, chrono.getLast("explanation_solver_time_neg_query", TimeUnit.S));
-							
-
-						}
 
 					}
 
 				}
+				myFirstValue=bias_minus.getSize();
+				mySecondValue=learned.size();
+				learner.query_theory_evol(answer.getValue(),myFirstValue, mySecondValue);
 			}
 			nbquery++;
 		}
@@ -995,8 +961,13 @@ public class ACQ_ECONACQ {
 			learned_network = model != null ? toNetwork(model) : null;
 			assert learned_network!= null;
 		}
+		} finally {
+	        stopMonitoring();
+	        learner.theory_evol(this.metrics);
+	    }		
 
 		return !collapse;
+		
 
 	}
 
@@ -1015,5 +986,39 @@ public class ACQ_ECONACQ {
 		return network;
 	}
 
+	//FOR MONITORING
+	private void startMonitoring(long interval, java.util.concurrent.TimeUnit unit) {
+	    scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+	        Thread t = new Thread(r, "acq-sampler");
+	        t.setDaemon(true);
+	        return t;
+	    });
+
+	    scheduler.scheduleAtFixedRate(() -> {
+	        try {
+	        	ArrayList<Integer> row = new ArrayList<Integer>();
+	        	
+	            row.add(this.myFirstValue);
+	            row.add(this.mySecondValue);
+	            this.metrics.add(row);
+
+	        } catch (Throwable t) {
+	            t.printStackTrace();
+	        }
+	    }, 0, interval, unit);
+	}
+
+	private void stopMonitoring() {
+	    if (scheduler != null && !scheduler.isShutdown()) {
+	        scheduler.shutdown();
+	        try {
+	            // Full package name here as well
+	            scheduler.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS);
+	        } catch (InterruptedException e) {
+	            scheduler.shutdownNow();
+	            Thread.currentThread().interrupt();
+	        }
+	    }
+	}
 
 }

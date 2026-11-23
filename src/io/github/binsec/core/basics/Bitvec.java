@@ -218,4 +218,17 @@ public class Bitvec {
 		}
 		return true;
 	}
+	
+	public String toHex() {
+	    // number of hex digits needed = size in bits / 4
+	    int hexDigits = size / 4;
+	    String hex = unsigned().toString(16);
+	    // left-pad with zeros to the correct width
+	    StringBuilder sb = new StringBuilder();
+	    for (int i = hex.length(); i < hexDigits; i++) {
+	        sb.append('0');
+	    }
+	    sb.append(hex);
+	    return "#x" + sb.toString();
+	}
 }

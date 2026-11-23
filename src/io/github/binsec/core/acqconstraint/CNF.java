@@ -22,11 +22,14 @@
 
 package io.github.binsec.core.acqconstraint;
 
+import static org.mockito.Mockito.RETURNS_MOCKS;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import io.github.binsec.core.acqconstraint.ConstraintFactory.ConstraintSet;
 import io.github.binsec.core.learner.ACQ_Query;
 import io.github.binsec.core.tools.Chrono;
 
@@ -291,4 +294,21 @@ public class CNF implements Iterable<Clause> {
 		return null;
 	}
 
-}
+	public ArrayList<Integer> info () {
+		ArrayList<Integer>  res= new ArrayList<Integer>();
+		for(Clause cl : this) {
+			res.add(cl.getSize());
+		}
+		return res;
+	}
+
+	public boolean contains_subset(Clause cl) {
+		for(Clause fcl : clauses){
+			if (fcl.contains_subset(cl)) return true;
+		}
+		return false;
+	}
+
+	
+		
+	}

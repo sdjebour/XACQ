@@ -28,6 +28,10 @@ package io.github.binsec.core.learner;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import io.github.binsec.core.acqconstraint.ACQ_IConstraint;
+import io.github.binsec.core.acqconstraint.ACQ_Network;
+import io.github.binsec.core.acqconstraint.ConstraintFactory;
+import io.github.binsec.core.acqconstraint.ConstraintFactory.ConstraintSet;
 import io.github.binsec.core.basics.Bitvec;
 
 /**
@@ -220,4 +224,17 @@ public class ACQ_Query implements Cloneable {
 	        // TODO Auto-generated method stub
 	        return (ACQ_Query) super.clone();  
 	    }
+	 
+	 public ACQ_Network tomss(ACQ_Bias bias) {
+			
+			ConstraintFactory fact = bias.getNetwork().getFactory();
+			ConstraintSet set = fact.createSet();
+			for (ACQ_IConstraint c : bias.getConstraints()) {
+				//System.out.println(c.toString());
+				if (c.check(this)) {
+					set.add(c);
+				}
+			}
+			return new ACQ_Network(fact,set);
+		}
 }

@@ -153,6 +153,18 @@ abstract public class ACQ_ConstraintSolver {
 	}
 
 
+	public ACQ_Query solveAnyBlock(ACQ_Scope scp) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	public ACQ_Query solveQ2(ACQ_Network network, ACQ_Network network2) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 
 
 }

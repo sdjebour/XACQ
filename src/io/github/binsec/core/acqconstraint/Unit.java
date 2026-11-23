@@ -178,5 +178,12 @@ public class Unit {
 			return "a(" + varname + ")";
 		}
 	}
+
+	public boolean equalsConstraintFrom(ACQ_Network k) {
+		for(ACQ_IConstraint c : k) {
+			if(this.equalsConstraint(c)) return true;
+		}
+		return false;
+	}
 	
 }

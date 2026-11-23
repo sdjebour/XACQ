@@ -281,10 +281,13 @@ def bench(conffiles, timeout, conacq_args, outfile, passive, nruns, biaslevel, i
     disj = conacq_args["disj"]
     strat = conacq_args["strat"]
     explain = conacq_args["explain"]
+    pos_explain = conacq_args["pos_explain"]
+    neg_explain = conacq_args["neg_explain"]
     bias_optim = conacq_args["bias_optim"]
     solvoptim = conacq_args["solvoptim"]
     back = conacq_args["back"]
     emulto = conacq_args["emulto"]
+    algo = conacq_args["algo"]
 
     for j in tqdm(range(len(conffiles)*nruns), leave=False):
         i = j // nruns
@@ -304,7 +307,10 @@ def bench(conffiles, timeout, conacq_args, outfile, passive, nruns, biaslevel, i
             "-emulto", emulto,
             "-strat" if strat else None,
             "-explain" if explain else None,
+            "-pos_explain" if pos_explain else None,
+            "-neg_explain" if neg_explain else None,
             "-bias_optim" if bias_optim else None,
+            ("-algo", algo) if algo else None,
             "-solvoptim" if solvoptim else None,
             "-back" if back else None,
             "-passive" if passive else None,
@@ -378,7 +384,10 @@ if __name__ == "__main__":
     parser.add_argument('--disj', required=False, type=str, help="Add disjunction constraints")
     parser.add_argument('--strat', action="store_true", help="Add query generation strategy")
     parser.add_argument('--explain', action="store_true", help="explaination")
+    parser.add_argument('--pos_explain', action="store_true", help="explaination")
+    parser.add_argument('--neg_explain', action="store_true", help="explaination")
     parser.add_argument('--bias_optim', action="store_true", help="bias_optim")
+    parser.add_argument('--algo', type=str, help="choose algorithm (conacq, dca)")
     parser.add_argument('--solvoptim', action="store_true", help="solv optim for explaination")
     parser.add_argument('--back', action="store_true", help="Add background knowledge")
     parser.add_argument('--biaslvl', type=str, help="Set bias size (min, avg, max)")
@@ -394,7 +403,10 @@ if __name__ == "__main__":
         "disj" : args.disj if args.disj != None else "auto",
         "strat" : args.strat,
         "explain" : args.explain,
+        "pos_explain" : args.pos_explain,
+        "neg_explain" : args.neg_explain,
         "bias_optim" : args.bias_optim,
+        "algo" : args.algo,
         "solvoptim" : args.solvoptim,
         "back" : args.back,
         "emulto": args.emulto,

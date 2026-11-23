@@ -24,6 +24,8 @@ package io.github.binsec.core;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 
 import io.github.binsec.core.acqconstraint.ACQ_ConjunctionConstraint;
@@ -81,6 +83,12 @@ public class ACQ_CONACQ {
 	protected boolean weighted = false;
 	protected ACQ_Query collapsingQuery;
 	protected QueryPrinter qp;
+	
+	 private final ArrayList<ArrayList<Integer>> metrics = new ArrayList<>();
+	 private ScheduledExecutorService scheduler;
+
+	 private volatile int myFirstValue = 0;
+	 private volatile int mySecondValue = 0;
 
 	public ACQ_CONACQ(ACQ_Learner learner, ACQ_Bias bias, SATSolver sat, ACQ_ConstraintSolver solv) {
 		this.bias = bias;
@@ -338,7 +346,7 @@ public class ACQ_CONACQ {
 				//ACQ_Network network = toNetwork(model);
 				//System.out.println("Start CP Solve");
 				//System.out.println("LE NETWORK "+network.toString());
-				q = constrSolver.solveQ(network);
+				q = constrSolver.solveQ2(network,knownconstraints.getNetwork());
 				//System.out.println("Stop CP Solve");
 				
 				if (constrSolver.isTimeoutReached()) {
@@ -486,14 +494,14 @@ public class ACQ_CONACQ {
 		assert(T.isMonomial());
 		ACQ_Network learned = new ACQ_Network(constraintFactory, bias.getVars(), constraintFactory.createSet(T.getMonomialPositive()));
 		
-		for(int i=0;i<learned.size();i++) {
-			//System.out.println("LE NETWORK LEARNED : "+learned.getConstraints().get_Constraint(i));
-		}
-		learned.addAll(knownconstraints.getNetwork(), true);
+		/*for(int i=0;i<learned.size();i++) {
+			System.out.println("LE NETWORK LEARNED : "+learned.getConstraints().get_Constraint(i));
+		}*/
+		//learned.addAll(knownconstraints.getNetwork(), true);
 		long startTime = System.currentTimeMillis();
 		while(System.currentTimeMillis() - startTime < 100) { // Until 0.1 second timeout
 			//System.out.println("ON EST Là");
-			ACQ_Query q = constrSolver.solveQ(learned);
+			ACQ_Query q = constrSolver.solveQ2(learned, knownconstraints.getNetwork());
 			
 			//System.out.println("THE QUERY :  = "+q.toString2());
 			ConstraintSet kappa = bias_minus.getKappa(q);
@@ -772,6 +780,10 @@ public class ACQ_CONACQ {
 	}
 	
 	public boolean process() throws Exception {
+		this.myFirstValue = bias_minus.getSize();
+		this.mySecondValue = 0;
+		startMonitoring(500, java.util.concurrent.TimeUnit.MILLISECONDS);
+		
 		chrono.start("ct_found");
 		this.t0 = System.currentTimeMillis();
 		
@@ -789,8 +801,8 @@ public class ACQ_CONACQ {
 		// assert(learned_network.size()==0);
 		chrono.start("total_acq_time");
 		chrono.start("first_constr_learned");
-		collapse = preprocess(T, N);
-		
+		//collapse = preprocess(T, N);
+		try {
 		while (active && !(collapse || convergence)) {
 			if (istimeouted_nothrow()) {
 				this.timeouted = true;
@@ -875,8 +887,16 @@ public class ACQ_CONACQ {
 					}
 				}
 				//System.out.println("bias size after query : "+bias_minus.getSize());
+			
+				ACQ_Network learned = new ACQ_Network(constraintFactory, bias.getVars());
+				learned.getLearnedNetwork(T);
 
+				myFirstValue=bias_minus.getSize();
+				mySecondValue=learned.size();
+				learner.query_theory_evol(answer.getValue(),myFirstValue, mySecondValue);
 			}
+			
+			
 		}
 		chrono.stop("total_acq_time");
 		if (this.timeouted) {
@@ -908,6 +928,10 @@ public class ACQ_CONACQ {
 			learned_network = model != null ? toNetwork(model) : null;
 		}
 		chrono.stop("ct_found");
+		} finally {
+	        stopMonitoring();
+	        learner.theory_evol(this.metrics);
+	    }	
 		return !collapse;
 	}
 	
@@ -924,5 +948,40 @@ public class ACQ_CONACQ {
 		chrono.stop("to_network");
 		return network;
 	}
+	
+	//FOR MONITORING
+		private void startMonitoring(long interval, java.util.concurrent.TimeUnit unit) {
+		    scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+		        Thread t = new Thread(r, "acq-sampler");
+		        t.setDaemon(true);
+		        return t;
+		    });
+
+		    scheduler.scheduleAtFixedRate(() -> {
+		        try {
+		        	ArrayList<Integer> row = new ArrayList<Integer>();
+		        	
+		            row.add(this.myFirstValue);
+		            row.add(this.mySecondValue);
+		            this.metrics.add(row);
+
+		        } catch (Throwable t) {
+		            t.printStackTrace();
+		        }
+		    }, 0, interval, unit);
+		}
+
+		private void stopMonitoring() {
+		    if (scheduler != null && !scheduler.isShutdown()) {
+		        scheduler.shutdown();
+		        try {
+		            // Full package name here as well
+		            scheduler.awaitTermination(2, java.util.concurrent.TimeUnit.SECONDS);
+		        } catch (InterruptedException e) {
+		            scheduler.shutdownNow();
+		            Thread.currentThread().interrupt();
+		        }
+		    }
+		}
 	
 }

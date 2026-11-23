@@ -1,9 +1,10 @@
 # Variables Setup
 nargs: 2
-types: PTR, PTR
+types: STR, STR
 globals: false, false
 
 # Emulator Options
+arch: x86-64
 bin: datasets/binaries/strcat
 binsec: datasets/binsec_ini/ijcai22/nopost/strcat.ini
 
@@ -11,6 +12,7 @@ binsec: datasets/binsec_ini/ijcai22/nopost/strcat.ini
 precond: And(v[0] != 0, v[1] != 0, Or(Strlen(v[1]) == 0, And(v[0] != v[1], Or(v[0] > v[1], v[1] >= v[0] + Strlen(v[0]) + 1), Or(v[1] > v[0], v[0] >= v[1] + Strlen(v[1]) +1))))
 
 # Acquisition Options
+algo: conacq
 active: true
 disj: auto
 strat: true

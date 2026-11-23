@@ -222,4 +222,14 @@ public class Chrono {
 	synchronized public String[] getSerieNames() {
 		return results.keySet().toArray(new String[results.keySet().size()]);
 	}
+
+	synchronized public void markReplace(String serieName) {
+	    Long startTime = current_chronos.get(serieName);
+	    if (startTime != null) {
+	        long now = nano ? System.nanoTime() : System.currentTimeMillis();
+	        ArrayList<Long> result = new ArrayList<Long>();
+	        result.add(now - startTime);
+	        results.put(serieName, result); // overwrites instead of appending
+	    }
+	}
 }

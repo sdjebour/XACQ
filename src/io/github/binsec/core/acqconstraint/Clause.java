@@ -226,4 +226,21 @@ public class Clause implements Iterable<Unit> {
 	public ACQ_Query getOriginQuery() {
 		return originQuery;
 	}
+
+	public boolean containsAll(ACQ_Network ss) {
+		for(ACQ_IConstraint c:ss) {
+			if(!this.contains(c)) return false;
+		}
+		return true;
+		
+	}
+	
+	public boolean contains_subset(Clause cl) {
+		for (Unit unit : units) {
+			if (!cl.contains(unit)) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

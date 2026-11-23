@@ -89,6 +89,7 @@ import io.github.binsec.core.acqvariable.CellType;
 import io.github.binsec.core.basics.Bitvec;
 import io.github.binsec.core.combinatorial.AllPermutationIterator;
 import io.github.binsec.core.combinatorial.CombinationIterator;
+import io.github.binsec.core.combinatorial.SubMSSIterator;
 import io.github.binsec.core.learner.ACQ_Bias;
 import io.github.binsec.core.learner.ACQ_Learner;
 import io.github.binsec.core.learner.ACQ_Query;
@@ -130,6 +131,9 @@ public class PreCA extends DefaultExperience {
 	static boolean mss = false;
 
 	static boolean explain = false;
+	static boolean pos_explain = true;
+	static boolean neg_explain = true;
+
 	static boolean bias_optim = false;
 
 	static boolean solvoptim = false;
@@ -150,6 +154,12 @@ public class PreCA extends DefaultExperience {
 	static boolean simplify = true;
 	static ACQ_ConstraintSolver csolv;
 	static ACQ_Bias known;
+	
+	
+	static boolean conacq = false;
+	static boolean remove = false;
+	static SubMSSIterator.Strategy strategy;
+	private static Long randTimeout = null;
 
 	/*
 	 * Variables to store if some kind of constraints are in the bias Used to add
@@ -834,65 +844,68 @@ public class PreCA extends DefaultExperience {
 		// System.out.print(disj.size());
 		int initial_size=constraints.size()/2;
 		int total_constr=constraints.size()/2;
-		if (disj.size() != 0) {
-			ConstraintSet[] sets = new ConstraintSet[constraints.size() - 2 + 1];
-			for (int nb_disj : disj) {
-				if (nb_disj > constraints.size())
-					continue;
-				int nb_constr_to_add=1;
-				for(int factor=initial_size;factor>initial_size-nb_disj;factor--) {
-					nb_constr_to_add=nb_constr_to_add*factor;
-				}
-				total_constr=total_constr+nb_constr_to_add;
-				if(total_constr>bias_limit)
-					break;
-
-				sets[nb_disj - 2] = constraintFactory.createSet();
-				CombinationIterator iterator = new CombinationIterator(constraints.size(), nb_disj);
-				while (iterator.hasNext()) {
-					int[] constrs = iterator.next();
-					if (alldiff(constrs)) {
-						ACQ_IConstraint[] iconstrs = new ACQ_IConstraint[constrs.length];
-						for (int i = 0; i < constrs.length; i++) {
-							iconstrs[i] = constraints.get_Constraint(constrs[i]);
-						}
-
-						if (notneg(iconstrs)) {
-							ConstraintSet constraintSet = constraintFactory.createSet();
-
-							int weight = 1;
-							weight = iconstrs[0].getWeight();
-							for (ACQ_IConstraint constr : iconstrs) {
-								constraintSet.add(constr);
-								weight = Math.max(weight, constr.getWeight());
+		if (!mss) {
+			if (disj.size() != 0) {
+				ConstraintSet[] sets = new ConstraintSet[constraints.size() - 2 + 1];
+				for (int nb_disj : disj) {
+					if (nb_disj > constraints.size())
+						continue;
+					int nb_constr_to_add=1;
+					for(int factor=initial_size;factor>initial_size-nb_disj;factor--) {
+						nb_constr_to_add=nb_constr_to_add*factor;
+					}
+					total_constr=total_constr+nb_constr_to_add;
+					if(total_constr>bias_limit)
+						break;
+	
+					sets[nb_disj - 2] = constraintFactory.createSet();
+					CombinationIterator iterator = new CombinationIterator(constraints.size(), nb_disj);
+					while (iterator.hasNext()) {
+						int[] constrs = iterator.next();
+						if (alldiff(constrs)) {
+							ACQ_IConstraint[] iconstrs = new ACQ_IConstraint[constrs.length];
+							for (int i = 0; i < constrs.length; i++) {
+								iconstrs[i] = constraints.get_Constraint(constrs[i]);
 							}
-
-							ACQ_DisjunctionConstraint new_c = weighted
-									? new ACQ_DisjunctionConstraint(constraintFactory, constraintSet, weight)
-									: new ACQ_DisjunctionConstraint(constraintFactory, constraintSet);
-
-							sets[nb_disj - 2].add(new_c);
-							ACQ_IConstraint neg = weighted ? new_c.getNegation(1) : new_c.getNegation();
-							sets[nb_disj - 2].add(neg);
+	
+							if (notneg(iconstrs)) {
+								ConstraintSet constraintSet = constraintFactory.createSet();
+	
+								int weight = 1;
+								weight = iconstrs[0].getWeight();
+								for (ACQ_IConstraint constr : iconstrs) {
+									constraintSet.add(constr);
+									weight = Math.max(weight, constr.getWeight());
+								}
+	
+								ACQ_DisjunctionConstraint new_c = weighted
+										? new ACQ_DisjunctionConstraint(constraintFactory, constraintSet, weight)
+										: new ACQ_DisjunctionConstraint(constraintFactory, constraintSet);
+	
+								sets[nb_disj - 2].add(new_c);
+								ACQ_IConstraint neg = weighted ? new_c.getNegation(1) : new_c.getNegation();
+								sets[nb_disj - 2].add(neg);
+							}
 						}
 					}
 				}
+	
+				for (ConstraintSet set : sets) {
+					if (set != null)
+						constraints.addAll(set);
+				}
+	
 			}
-
-			for (ConstraintSet set : sets) {
-				if (set != null)
-					constraints.addAll(set);
 			}
-
-		}
-
-		ACQ_Network network = new ACQ_Network(constraintFactory, allVarSet, constraints);
-		// System.out.println("bias created");
-		
-		// Fix the variables domains now because they can be extended based on the constant values in the bias
-		ACQ_CellVariable.fixDomains(types_sizes);
-		return new ACQ_Bias(network);
-
+	
+			ACQ_Network network = new ACQ_Network(constraintFactory, allVarSet, constraints);
+			// System.out.println("bias created");
+			
+			// Fix the variables domains now because they can be extended based on the constant values in the bias
+			ACQ_CellVariable.fixDomains(types_sizes);
+			return new ACQ_Bias(network);
+	
+			
 	}
 
 	private int calculate_max(int[] coeffs) {
@@ -1092,7 +1105,7 @@ public class PreCA extends DefaultExperience {
 				res.add(new Contradiction(net));
 			}
 
-			if (disj.contains(2)) {
+			if (disj.contains(2)&&conacq) {
 				/*
 				 * remove c1 /\ (~c1 /\ X) and remove c1 /\ c2 /\ (~c1 /\ ~c2) and TODO remove
 				 * a(c1) /\ ~a(c1 \/ X) <=> false
@@ -1549,12 +1562,11 @@ public class PreCA extends DefaultExperience {
 			expe = new PreCA();
 			expe.setParams(60000, // timeout
 					!noprint, true);
-			if (mss)
-				ACQ_Utils.executeDCAExperience(expe);
-			else if (explain)
-				ACQ_Utils.executeEConacqExperience(expe, active, nbrQueries, arch, solvoptim, bias_optim);
-			else
-				ACQ_Utils.executeConacqExperience(expe, active);
+			if (mss && !explain)     ACQ_Utils.executeDCAExperience(expe);
+			if (mss && explain)      ACQ_Utils.executeXDCAExperience(expe, arch, strategy, neg_explain, pos_explain);
+			if (conacq && explain)   ACQ_Utils.executeXACQExperience(expe, active, nbrQueries, arch, solvoptim, bias_optim, pos_explain, neg_explain);
+			if (conacq && !explain)  ACQ_Utils.executeConacqExperience(expe, active);
+			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1748,6 +1760,7 @@ public class PreCA extends DefaultExperience {
 							disj.add(i);
 						}
 					}
+					
 				} else if (line.startsWith("explain")) {
 					explain = Boolean.parseBoolean(line.split(":")[1].strip());
 					// nbrQueries = Integer.parseInt(line.split(":")[1].strip());
@@ -1770,13 +1783,27 @@ public class PreCA extends DefaultExperience {
 					learningtimeout = 1000 * Long.parseLong(line.split(":")[1].strip());
 				} else if (line.startsWith("simplify")) {
 					simplify = Boolean.parseBoolean(line.split(":")[1].strip());
-				} else if (line.startsWith("bias")) {
+				}else if (line.startsWith("pos_explain")) {
+					pos_explain = Boolean.parseBoolean(line.split(":")[1].strip());
+				}else if (line.startsWith("neg_explain")) {
+					neg_explain = Boolean.parseBoolean(line.split(":")[1].strip());
+				}else if (line.startsWith("bias")) {
 					parsedconstraints = line.split(":")[1].split(",");
 					for (int i = 0; i < parsedconstraints.length; i++) {
 						parsedconstraints[i] = parsedconstraints[i].strip();
 					}
 				}
+              else if (line.startsWith("algo")) {
+                     String val = line.split(":")[1].strip();
+                     if (val.equals("dca"))
+                             mss = true;
+                     else if (val.equals("conacq"))
+                             conacq = true;
+             }
 			}
+				if (mss && explain)
+                    strategy = SubMSSIterator.Strategy.QUICKEXPLAIN;
+				
 			assert active || !mss;
 			assert active || !strat;
 

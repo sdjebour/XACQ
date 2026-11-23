@@ -198,5 +198,11 @@ public class ACQ_ChocoSolverCells extends ACQ_ConstraintSolver {
 		return true;
 	}
 
+	@Override
+	public ACQ_Query solveQ2(ACQ_Network learned, ACQ_Network network) {
+		assert false;
+		return null;
+	}
+
 
 }

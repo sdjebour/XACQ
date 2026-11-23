@@ -33,6 +33,7 @@ import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.jgrapht.Graph;
@@ -463,5 +464,36 @@ public class ACQ_Network implements Iterable<ACQ_IConstraint> {
 			}
 		}
 		return res;
+	}
+
+	public void toValid(ACQ_Network mss) {
+		for (ACQ_IConstraint c : this) {
+            if (c instanceof OverlapConstraint) {
+                ACQ_Scope scope = c.getScope();
+                for (ACQ_IConstraint other : mss) {
+                    if (other instanceof StrlenEqConstraint) {
+                        if (scope.containsAll(other.getScope())) {
+                            this.add(other, true);
+                        }
+                    }
+                }
+                
+            }
+        }
+      
+    }
+	
+	public String toBw(ACQ_Query q,Map<String, String> regid) {
+		String res="";
+		for (ACQ_IConstraint constr : this.getConstraints()) {
+			// System.out.println(constr.getName());
+			res += "\n(assert " + constr.toBinsecConstraint(q, regid) + ")";
+		}
+			return res;
+		
+	}
+	
+	public ACQ_Network(ACQ_Network other_network) {
+		this(other_network.constraintFactory, other_network.variables, other_network.constraints, false);
 	}
 }

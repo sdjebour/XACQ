@@ -23,6 +23,7 @@
 package io.github.binsec.core.tools;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import io.github.binsec.core.learner.ACQ_Query;
 
@@ -44,6 +45,10 @@ public class StatManager {
 
 	private int nb_inf_exppos;
 	private int nb_inf_expneg;
+	
+	List<Integer> theory_evol;
+	ArrayList<ArrayList<Integer>> query_theory_evol=new ArrayList<>();;
+
 	
 
 	private ArrayList<ArrayList<Integer>> queriesKappaHistory = new ArrayList<>();
@@ -197,5 +202,38 @@ public class StatManager {
 		queriesSolvtimeHistory.add(row);
 
 	}
+	
+	public void query_theory_evol(int a,int b, int c) {
+		ArrayList<Integer> row = new ArrayList<>();
+		row.add(a);
+		row.add(b);
+		row.add(c);
+		
+		query_theory_evol.add(row);
+
+	}
+
+	public void theory_evol(List<Integer> res) {
+		theory_evol=res;
+		
+	}
+	
+	public List<Integer> gettheory_evol() {
+		return theory_evol;
+		
+	}
+	
+	public ArrayList<ArrayList<Integer>> getquerytheory_evol() {
+		return query_theory_evol;
+		
+	}
+	
+	 public void update_kappaHistory2(int i, int j, int k) {
+         ArrayList<Integer> row = new ArrayList<>();
+         row.add(i);
+         row.add(j);
+         row.add(k);
+         queriesKappaHistory.add(row);
+	 }
 
 }

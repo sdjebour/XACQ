@@ -23,6 +23,7 @@
 package io.github.binsec.core.learner;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 
@@ -107,6 +108,11 @@ public class ACQ_Learner implements ILearner {
 	public int[] infexppos(int c,int n, int m) {
 		return new int[] { c, n, m};
 	}
+	
+	@Override
+	public ArrayList<ArrayList<Integer>> theory_evol(ArrayList<ArrayList<Integer>> metrics) {
+		return metrics;
+	}
 
 	@Override
 	public int[] infexpneg(int c, int n, int m) {
@@ -121,6 +127,17 @@ public class ACQ_Learner implements ILearner {
 	@Override
 	public String updateQueryHistory(String q) {
 		return q;
+	}
+
+	@Override
+	public int[] query_theory_evol(int a, int b, int c) {
+		return new int[] { a, b, c};
+		
+	}
+	
+	@Override
+	public int[] updateExpStat(int value, int size, int i) {
+		return new int[] {value, size, i};
 	}
 
 }
