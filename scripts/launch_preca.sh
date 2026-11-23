@@ -65,12 +65,12 @@ while [[ $# -gt 0 ]]; do
         EXPLAIN=true
         shift # past argument
         ;;
-        -pos_explain)
-        POS_EXPLAIN=true
+       -no_pos_explain)
+        POS_EXPLAIN=false
         shift # past argument
         ;;
-        -neg_explain)
-        NEG_EXPLAIN=true
+        -no_neg_explain)
+        NEG_EXPLAIN=false
         shift # past argument
         ;;
         -bias_optim)
